@@ -1,17 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-contract Escrow {
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
+
+contract Escrow is Ownable, Pausable {
     address public marketplace;
-    address public owner;
 
     modifier onlyMarketplace() {
         require(msg.sender == marketplace, "Only Marketplace contract can call");
-        _;
-    }
-
-    modifier onlyOwner() {
-        require(msg.sender == owner, "Only owner can call");
         _;
     }
     enum EscrowStatus { Pending, Released, Refunded, Disputed }
@@ -34,21 +31,51 @@ contract Escrow {
     event Disputed(uint256 indexed jobId, string reason);
     event DisputeResolved(uint256 indexed jobId, bool releasedToFreelancer);
 
-    constructor() {
-        owner = msg.sender;
-    }
+    /**
+     * @notice Initializes the Escrow contract and sets the owner
+     */
+    /**
+     * @notice Initializes the Escrow contract
+     */
+    constructor() Ownable() {}
 
+    /**
+     * @notice Set the Marketplace contract address
+     * @param _marketplace The address of the Marketplace contract
+     */
+    /**
+     * @notice Set the Marketplace contract address
+     * @param _marketplace The address of the Marketplace contract
+     */
     function setMarketplace(address _marketplace) external onlyOwner {
         marketplace = _marketplace;
     }
 
-    function deposit(uint256 jobId, address freelancer) external payable onlyMarketplace {
+    /**
+     * @notice Deposit payment into escrow for a job
+     * @param jobId The job ID
+     * @param freelancer The freelancer's address
+     */
+    /**
+     * @notice Deposit payment into escrow for a job
+     * @param jobId The job ID
+     * @param freelancer The freelancer's address
+     */
+    function deposit(uint256 jobId, address freelancer) external payable onlyMarketplace whenNotPaused {
         require(msg.value > 0, "Deposit must be greater than 0");
         escrows[jobId] = EscrowInfo(jobId, tx.origin, freelancer, msg.value, EscrowStatus.Pending, "", false);
         emit Deposited(jobId, tx.origin, msg.value);
     }
 
-    function release(uint256 jobId) external onlyMarketplace {
+    /**
+     * @notice Release escrow payment to freelancer after job completion
+     * @param jobId The job ID
+     */
+    /**
+     * @notice Release escrow payment to freelancer after job completion
+     * @param jobId The job ID
+     */
+    function release(uint256 jobId) external onlyMarketplace whenNotPaused {
         EscrowInfo storage escrow = escrows[jobId];
         require(escrow.status == EscrowStatus.Pending, "Escrow not pending");
         escrow.status = EscrowStatus.Released;
@@ -56,7 +83,15 @@ contract Escrow {
         emit Released(jobId, escrow.freelancer);
     }
 
-    function refund(uint256 jobId) external onlyMarketplace {
+    /**
+     * @notice Refund escrow payment to client if job is cancelled
+     * @param jobId The job ID
+     */
+    /**
+     * @notice Refund escrow payment to client if job is cancelled
+     * @param jobId The job ID
+     */
+    function refund(uint256 jobId) external onlyMarketplace whenNotPaused {
         EscrowInfo storage escrow = escrows[jobId];
         require(escrow.status == EscrowStatus.Pending, "Escrow not pending");
         escrow.status = EscrowStatus.Refunded;
@@ -64,7 +99,17 @@ contract Escrow {
         emit Refunded(jobId, escrow.client);
     }
 
-    function dispute(uint256 jobId, string calldata reason) external onlyMarketplace {
+    /**
+     * @notice Raise a dispute for a job in escrow
+     * @param jobId The job ID
+     * @param reason The reason for the dispute
+     */
+    /**
+     * @notice Raise a dispute for a job in escrow
+     * @param jobId The job ID
+     * @param reason The reason for the dispute
+     */
+    function dispute(uint256 jobId, string calldata reason) external onlyMarketplace whenNotPaused {
         EscrowInfo storage escrow = escrows[jobId];
         require(escrow.status == EscrowStatus.Pending, "Escrow not pending");
         escrow.status = EscrowStatus.Disputed;
@@ -73,7 +118,30 @@ contract Escrow {
     }
 
     // Manual dispute resolution by owner
-    function resolveDispute(uint256 jobId, bool releaseToFreelancer) external onlyOwner {
+    /**
+     * @notice Manually resolve a dispute by owner
+     * @param jobId The job ID
+     * @param releaseToFreelancer If true, release payment to freelancer; otherwise refund client
+     */
+    /**
+     * @notice Manually resolve a dispute by owner
+     * @param jobId The job ID
+     * @param releaseToFreelancer If true, release payment to freelancer; otherwise refund client
+     */
+    function resolveDispute(uint256 jobId, bool releaseToFreelancer) external onlyOwner whenNotPaused {
+    /**
+     * @notice Pause the contract in case of emergency
+     */
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    /**
+     * @notice Unpause the contract
+     */
+    function unpause() external onlyOwner {
+        _unpause();
+    }
         EscrowInfo storage escrow = escrows[jobId];
         require(escrow.status == EscrowStatus.Disputed, "No dispute");
         require(!escrow.resolved, "Already resolved");
