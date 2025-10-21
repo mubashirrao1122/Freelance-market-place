@@ -24,6 +24,7 @@ This repository contains modular smart contracts for a decentralized freelance m
 - Access control to ensure only authorized contract interactions.
 - Dispute resolution logic for secure and fair transactions.
 - NatSpec documentation for all public/external functions.
+- Pausable and upgradeable contract recommendations.
 
 ## Usage
 
@@ -32,10 +33,31 @@ This repository contains modular smart contracts for a decentralized freelance m
 3. Set the Marketplace contract address in both Escrow and Ratings contracts.
 4. Interact with the Marketplace contract for job posting, escrow deposits, work submission, completion, disputes, and ratings.
 
-## Upgradeability
+## Legal & Compliance Risks and Controls
 
-For future upgrades, consider using OpenZeppelin's proxy contracts.
+| Legal Issue | Where it Appears | Risk | Control/Mitigation |
+|-------------|------------------|------|-------------------|   
+| Offer & Acceptance | Job posting, proposal, assignment | Disputes over contract formation | On-chain records, clear events, explicit actions |
+| Lost in Translation | Contract logic | Misinterpretation of terms | NatSpec comments, peer/legal review |
+| Data Protection & Privacy | User/job data on-chain | Exposure of personal data | Minimal data storage, privacy notice |
+| Noncompliance w/ Laws | Payments, disputes | Regulatory violations | Admin controls, documentation, legal review |
+| Ambiguities of Human Contracts | Job descriptions, disputes | Vague terms | Structured inputs, guidelines, off-chain arbitration |
+| Irrevocability of Code | All contracts | Bugs, vulnerabilities | Upgradeable proxy, pausable, audits |
+| Jurisdictional Issues | Global users | Unclear applicable law | Jurisdiction notice, decentralized arbitration |
+| Uniform Contracts Machines | Automated logic | Lack of flexibility | Manual dispute resolution, modularity |
+
+## Privacy Notice
+
+This platform stores only essential data (wallet addresses, job details, ratings) on-chain. Users should not include personal or sensitive information in job descriptions or reviews. All data is public and permanent.
+
+## Jurisdiction & Compliance
+
+These contracts are intended for global use. Users are responsible for compliance with local laws. The platform provides decentralized dispute resolution and admin controls for compliance.
+
+## Upgradeability & Pausable Contracts
+
+For future upgrades, use OpenZeppelin's proxy contracts and pausable patterns. Admins can pause contracts in case of emergencies or compliance issues.
 
 ---
 
-**Author:** mubashirrao1122
+**Author:** Mubashir Rao
