@@ -2,13 +2,13 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/utils/Pausable.sol";
 
 interface IEscrow {
     function deposit(uint256 jobId, address freelancer) external payable;
     function release(uint256 jobId) external;
     function refund(uint256 jobId) external;
-    function dispute(uint256 jobId) external;
+    function dispute(uint256 jobId, string calldata reason) external;
 }
 
 interface IRatings {
@@ -16,7 +16,13 @@ interface IRatings {
 }
 
 contract Marketplace is Ownable, Pausable {
-    enum JobStatus { Open, Assigned, Submitted, Completed, Cancelled }
+    enum JobStatus {
+        Open,
+        Assigned,
+        Submitted,
+        Completed,
+        Cancelled
+    }
 
     struct Job {
         uint256 id;
@@ -48,7 +54,7 @@ contract Marketplace is Ownable, Pausable {
      * @param escrowAddress The address of the Escrow contract
      * @param ratingsAddress The address of the Ratings contract
      */
-    constructor(address escrowAddress, address ratingsAddress) {
+    constructor(address escrowAddress, address ratingsAddress) Ownable(msg.sender) {
         escrowContract = IEscrow(escrowAddress);
         ratingsContract = IRatings(ratingsAddress);
     }
@@ -115,7 +121,7 @@ contract Marketplace is Ownable, Pausable {
         require(job.status == JobStatus.Submitted, "Work not submitted");
         job.status = JobStatus.Completed;
         escrowContract.release(jobId);
-    ratingsContract.rateUser(job.freelancer, freelancerRating, review, jobId);
+        ratingsContract.rateUser(job.freelancer, freelancerRating, review, jobId);
         emit JobCompleted(jobId);
         emit EscrowReleased(jobId, job.freelancer);
     }
@@ -154,6 +160,12 @@ contract Marketplace is Ownable, Pausable {
      * @param review The review for the client
      */
     function rateClient(uint256 jobId, uint8 clientRating, string calldata review) external whenNotPaused {
+        Job storage job = jobs[jobId];
+        require(msg.sender == job.freelancer, "Only freelancer can rate client");
+        require(job.status == JobStatus.Completed, "Job not completed");
+        ratingsContract.rateUser(job.client, clientRating, review, jobId);
+    }
+
     /**
      * @notice Pause the contract in case of emergency
      */
@@ -166,10 +178,5 @@ contract Marketplace is Ownable, Pausable {
      */
     function unpause() external onlyOwner {
         _unpause();
-    }
-        Job storage job = jobs[jobId];
-        require(msg.sender == job.freelancer, "Only freelancer can rate client");
-        require(job.status == JobStatus.Completed, "Job not completed");
-        ratingsContract.rateUser(job.client, clientRating, review, jobId);
     }
 }

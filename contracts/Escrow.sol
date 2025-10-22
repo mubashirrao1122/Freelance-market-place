@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/utils/Pausable.sol";
 
 contract Escrow is Ownable, Pausable {
     address public marketplace;
@@ -11,7 +11,12 @@ contract Escrow is Ownable, Pausable {
         require(msg.sender == marketplace, "Only Marketplace contract can call");
         _;
     }
-    enum EscrowStatus { Pending, Released, Refunded, Disputed }
+    enum EscrowStatus {
+        Pending,
+        Released,
+        Refunded,
+        Disputed
+    }
 
     struct EscrowInfo {
         uint256 jobId;
@@ -37,7 +42,7 @@ contract Escrow is Ownable, Pausable {
     /**
      * @notice Initializes the Escrow contract
      */
-    constructor() Ownable() {}
+    constructor() Ownable(msg.sender) {}
 
     /**
      * @notice Set the Marketplace contract address
@@ -123,25 +128,7 @@ contract Escrow is Ownable, Pausable {
      * @param jobId The job ID
      * @param releaseToFreelancer If true, release payment to freelancer; otherwise refund client
      */
-    /**
-     * @notice Manually resolve a dispute by owner
-     * @param jobId The job ID
-     * @param releaseToFreelancer If true, release payment to freelancer; otherwise refund client
-     */
     function resolveDispute(uint256 jobId, bool releaseToFreelancer) external onlyOwner whenNotPaused {
-    /**
-     * @notice Pause the contract in case of emergency
-     */
-    function pause() external onlyOwner {
-        _pause();
-    }
-
-    /**
-     * @notice Unpause the contract
-     */
-    function unpause() external onlyOwner {
-        _unpause();
-    }
         EscrowInfo storage escrow = escrows[jobId];
         require(escrow.status == EscrowStatus.Disputed, "No dispute");
         require(!escrow.resolved, "Already resolved");
@@ -154,5 +141,19 @@ contract Escrow is Ownable, Pausable {
             payable(escrow.client).transfer(escrow.amount);
         }
         emit DisputeResolved(jobId, releaseToFreelancer);
+    }
+
+    /**
+     * @notice Pause the contract in case of emergency
+     */
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    /**
+     * @notice Unpause the contract
+     */
+    function unpause() external onlyOwner {
+        _unpause();
     }
 }

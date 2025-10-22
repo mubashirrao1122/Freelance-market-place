@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/utils/Pausable.sol";
 
 contract Ratings is Ownable, Pausable {
     address public marketplace;
@@ -11,6 +11,7 @@ contract Ratings is Ownable, Pausable {
         require(msg.sender == marketplace, "Only Marketplace contract can call");
         _;
     }
+
     struct Rating {
         uint8 score;
         string review;
@@ -28,7 +29,7 @@ contract Ratings is Ownable, Pausable {
     /**
      * @notice Initializes the Ratings contract
      */
-    constructor() Ownable() {}
+    constructor() Ownable(msg.sender) {}
 
     /**
      * @notice Set the Marketplace contract address
@@ -56,17 +57,16 @@ contract Ratings is Ownable, Pausable {
      * @param review The review text
      * @param jobId The job ID associated with the rating
      */
-    function rateUser(address user, uint8 score, string memory review, uint256 jobId) external onlyMarketplace whenNotPaused {
+    function rateUser(address user, uint8 score, string memory review, uint256 jobId)
+        external
+        onlyMarketplace
+        whenNotPaused
+    {
         require(score >= 1 && score <= 5, "Score must be 1-5");
         userRatings[user].push(Rating(score, review, tx.origin, jobId));
         emit Rated(user, score, review, tx.origin, jobId);
     }
 
-    /**
-     * @notice Get all ratings for a user
-     * @param user The address of the user
-     * @return Array of Rating structs
-     */
     /**
      * @notice Get all ratings for a user
      * @param user The address of the user
@@ -81,12 +81,16 @@ contract Ratings is Ownable, Pausable {
      * @param user The address of the user
      * @return The average rating (0 if no ratings)
      */
-    /**
-     * @notice Calculate and return the average rating for a user
-     * @param user The address of the user
-     * @return The average rating (0 if no ratings)
-     */
     function getAverageRating(address user) external view returns (uint256) {
+        Rating[] memory ratings = userRatings[user];
+        if (ratings.length == 0) return 0;
+        uint256 sum = 0;
+        for (uint256 i = 0; i < ratings.length; i++) {
+            sum += ratings[i].score;
+        }
+        return sum / ratings.length;
+    }
+
     /**
      * @notice Pause the contract in case of emergency
      */
@@ -99,17 +103,5 @@ contract Ratings is Ownable, Pausable {
      */
     function unpause() external onlyOwner {
         _unpause();
-    }
-        Rating[] memory ratings = userRatings[user];
-        if (ratings.length == 0) return 0;
-        uint256 sum = 0;
-        for (uint256 i = 0; i < ratings.length; i++) {
-            sum += ratings[i].score;
-        }
-        return sum / ratings.length;
-    }
-
-    function getRatings(address user) external view returns (Rating[] memory) {
-        return userRatings[user];
     }
 }
