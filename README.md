@@ -36,7 +36,7 @@ This repository contains modular smart contracts for a decentralized freelance m
 ## Legal & Compliance Risks and Controls
 
 | Legal Issue | Where it Appears | Risk | Control/Mitigation |
-|-------------|------------------|------|-------------------|
+|-------------|------------------|------|-------------------|   
 | Offer & Acceptance | Job posting, proposal, assignment | Disputes over contract formation | On-chain records, clear events, explicit actions |
 | Lost in Translation | Contract logic | Misinterpretation of terms | NatSpec comments, peer/legal review |
 | Data Protection & Privacy | User/job data on-chain | Exposure of personal data | Minimal data storage, privacy notice |
